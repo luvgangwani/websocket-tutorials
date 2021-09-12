@@ -1,6 +1,9 @@
 import {createServer, IncomingMessage, Server, ServerResponse} from 'http';
 import ws from 'websocket';
 
+// list of all clients
+const clients: Array<ws.connection> = [];
+
 // create an http server
 const server:Server = createServer((request: IncomingMessage, response: ServerResponse) => {
     console.log(`${new Date()}: Request reveiced from url ${request.url}`);
@@ -24,14 +27,19 @@ wsServer.on('request', (request: ws.request) => {
     // accept the connection request
     const connection:ws.connection = request.accept('echo-protocol', request.origin);
 
+    // add it to the list of clients
+    clients.push(connection);
+
     console.log(`${new Date()}: Connection accepted.`);
 
     connection.on('message', (message: ws.Message) => {
-        if (message.type === 'utf8') {
-            console.log(`${new Date()}: Received message by server - "${message.utf8Data}"`);
-            // send the message to all the clients connected
-            connection.sendUTF(message.utf8Data);
-        }
+        clients.forEach((client: ws.connection) => {
+            if (message.type === 'utf8') {
+                console.log(`${new Date()}: Received message by server - "${message.utf8Data}"`);
+                // send the message to all the clients connected
+                client.sendUTF(message.utf8Data);
+            }
+        });
     });
 
     // event for closing the connection
